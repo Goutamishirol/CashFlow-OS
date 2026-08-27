@@ -3,6 +3,9 @@
  * Interfaces directly with the Spring Boot Backend on /api
  */
 
+// Get API base URL from environment variable (production) or use relative paths (development)
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 async function handleResponse(response) {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -40,11 +43,11 @@ async function apiFetch(url, options = {}) {
   const method = options.method || 'GET';
   const headers = new Headers(options.headers || {});
   if (method !== 'GET' && method !== 'HEAD') {
-    await fetch('/api/auth/csrf', { credentials: 'include' });
+    await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
     const token = csrfToken();
     if (token) headers.set('X-XSRF-TOKEN', decodeURIComponent(token));
   }
-  return fetch(url, { ...options, headers, credentials: 'include' });
+  return fetch(`${API_BASE_URL}${url}`, { ...options, headers, credentials: 'include' });
 }
 
 export const api = {
