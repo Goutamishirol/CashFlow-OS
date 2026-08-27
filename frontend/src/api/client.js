@@ -59,20 +59,30 @@ async function fetchAndStoreCsrfToken() {
 
 async function apiFetch(url, options = {}) {
   const method = options.method || 'GET';
-  const headers = new Headers(options.headers || {});
+  
+  // Destructure headers from options to avoid conflicts
+  const { headers: optionHeaders, ...restOptions } = options;
+  const headers = new Headers(optionHeaders || {});
   
   // For state-changing requests, ensure we have a CSRF token
   if (method !== 'GET' && method !== 'HEAD') {
     // Fetch token if not already stored
     if (!storedCsrfToken) {
+      console.log('CSRF token not in memory, fetching from /api/auth/csrf...');
       await fetchAndStoreCsrfToken();
     }
     // Send token as header if available
     if (storedCsrfToken) {
+      console.log('Adding X-XSRF-TOKEN header:', storedCsrfToken.substring(0, 20) + '...');
       headers.set('X-XSRF-TOKEN', storedCsrfToken);
+    } else {
+      console.warn('No CSRF token available for request to', url);
     }
   }
-  return fetch(`${API_BASE_URL}${url}`, { ...options, headers, credentials: 'include' });
+  
+  const fetchOptions = { ...restOptions, headers, credentials: 'include', method };
+  console.log('Sending', method, 'request to', url, 'with headers:', Array.from(headers.keys()));
+  return fetch(`${API_BASE_URL}${url}`, fetchOptions);
 }
 
 export const api = {
