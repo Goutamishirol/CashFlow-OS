@@ -50,7 +50,7 @@ public class SecurityConfig {
         http
             .cors(org.springframework.security.config.Customizer.withDefaults())
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRepository(csrfTokenRepository())
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
@@ -61,6 +61,13 @@ public class SecurityConfig {
             .formLogin(form -> form.disable())
             .logout(logout -> logout.disable());
         return http.build();
+    }
+
+    @Bean
+    CookieCsrfTokenRepository csrfTokenRepository() {
+        // Create CSRF token repository with HttpOnly=false to allow JavaScript to read token
+        // Application properties will configure session cookie with SameSite=None for cross-origin support
+        return CookieCsrfTokenRepository.withHttpOnlyFalse();
     }
 
     @Bean

@@ -6,6 +6,9 @@
 // Get API base URL from environment variable (production) or use relative paths (development)
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
+// Store CSRF token in memory (cross-origin safe approach)
+let storedCsrfToken = null;
+
 async function handleResponse(response) {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -39,13 +42,35 @@ function csrfToken() {
   return document.cookie.split('; ').find((cookie) => cookie.startsWith('XSRF-TOKEN='))?.split('=')[1];
 }
 
+// Fetch CSRF token from backend endpoint and store it in memory
+async function fetchAndStoreCsrfToken() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
+    if (response.ok) {
+      const data = await response.json();
+      storedCsrfToken = data.token;
+      return storedCsrfToken;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch CSRF token:', error);
+  }
+  return null;
+}
+
 async function apiFetch(url, options = {}) {
   const method = options.method || 'GET';
   const headers = new Headers(options.headers || {});
+  
+  // For state-changing requests, ensure we have a CSRF token
   if (method !== 'GET' && method !== 'HEAD') {
-    await fetch(`${API_BASE_URL}/api/auth/csrf`, { credentials: 'include' });
-    const token = csrfToken();
-    if (token) headers.set('X-XSRF-TOKEN', decodeURIComponent(token));
+    // Fetch token if not already stored
+    if (!storedCsrfToken) {
+      await fetchAndStoreCsrfToken();
+    }
+    // Send token as header if available
+    if (storedCsrfToken) {
+      headers.set('X-XSRF-TOKEN', storedCsrfToken);
+    }
   }
   return fetch(`${API_BASE_URL}${url}`, { ...options, headers, credentials: 'include' });
 }

@@ -72,6 +72,8 @@ public class AuthController {
 
     @GetMapping("/csrf")
     public Map<String, String> csrf(org.springframework.security.web.csrf.CsrfToken token) {
+        // Return CSRF token in response body for cross-origin frontend consumption
+        // Frontend will extract token from JSON and send as X-XSRF-TOKEN header
         return Map.of("token", token.getToken());
     }
 
