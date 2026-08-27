@@ -13,7 +13,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -64,10 +64,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    CookieCsrfTokenRepository csrfTokenRepository() {
-        // Create CSRF token repository with HttpOnly=false to allow JavaScript to read token
-        // Application properties will configure session cookie with SameSite=None for cross-origin support
-        return CookieCsrfTokenRepository.withHttpOnlyFalse();
+    HttpSessionCsrfTokenRepository csrfTokenRepository() {
+        // Use HttpSessionCsrfTokenRepository for cross-origin CSRF protection
+        // CSRF token is stored in HTTP session (via JSESSIONID cookie with SameSite=None)
+        // Frontend fetches token from /api/auth/csrf endpoint and sends as X-XSRF-TOKEN header
+        // Spring Security validates header against session-stored token
+        HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
+        repository.setHeaderName("X-XSRF-TOKEN");
+        return repository;
     }
 
     @Bean
